@@ -138,130 +138,57 @@
   <audio id="alarmSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="script.js"></script>
+
+  <!-- Service Worker -->
   <script>
-    const { jsPDF } = window.jspdf;
-
-    function showSection(section) {
-      document.getElementById('main').style.display = 'none';
-      document.getElementById('log').style.display = 'none';
-      document.getElementById('stats').style.display = 'none';
-      document.getElementById(section).style.display = 'block';
-      if (section === 'stats') {
-        renderStats();
-        renderYearlyStats();
-      }
-      if (section === 'log') renderLog();
-    }
-
-    function renderStats() {
-      const logs = JSON.parse(localStorage.getItem('workoutLog') || '[]');
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth();
-      const stats = [];
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      for (let i = 1; i <= daysInMonth; i++) {
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-        const log = logs.find(l => l.date === dateStr);
-        stats.push({ date: dateStr, status: log ? (log.message.includes('결석') ? '❌' : '✅') : '⬜' });
-      }
-      const html = stats.map(s => `<p><strong>${s.date}</strong>: ${s.status}</p>`).join('');
-      document.getElementById('statsList').innerHTML = html;
-    }
-
-    function renderYearlyStats() {
-      const logs = JSON.parse(localStorage.getItem('workoutLog') || '[]');
-      const now = new Date();
-      const year = now.getFullYear();
-      const monthlyStats = Array.from({ length: 12 }, (_, i) => {
-        const month = String(i + 1).padStart(2, '0');
-        const matches = logs.filter(l => l.date.startsWith(`${year}-${month}`));
-        const total = matches.length;
-        const success = matches.filter(m => !m.message.includes('결석')).length;
-        const rate = total > 0 ? Math.round((success / total) * 100) : 0;
-        return `<p><strong>${year}-${month}</strong>: ${rate}% (${success}/${total})</p>`;
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')  // service worker 등록
+          .then(registration => {
+            console.log('Service Worker 등록 성공:', registration);
+          })
+          .catch(error => {
+            console.log('Service Worker 등록 실패:', error);
+          });
       });
-      document.getElementById('yearlyStats').innerHTML = monthlyStats.join('');
-    }
-
-    function renderLog() {
-      const logs = JSON.parse(localStorage.getItem('workoutLog') || '[]');
-      const now = new Date();
-      const yearMonth = now.toISOString().slice(0, 7);
-      const filtered = logs.filter(l => l.date.startsWith(yearMonth));
-      const html = filtered.map(log => `<p><strong>${log.date}</strong>: ${log.message}</p>`).join('');
-      document.getElementById('logList').innerHTML = html;
-    }
-
-    function downloadPDF() {
-      const doc = new jsPDF();
-      doc.text('운동 일지 (이번 달)', 10, 10);
-
-      const logs = JSON.parse(localStorage.getItem('workoutLog') || '[]');
-      const now = new Date();
-      const thisMonth = now.toISOString().slice(0, 7);
-      const logList = logs.filter(l => l.date.startsWith(thisMonth));
-
-      logList.forEach((log, index) => {
-        doc.text(`${log.date}: ${log.message}`, 10, 20 + (index * 10));
-      });
-
-      doc.save('운동일지.pdf');
     }
   </script>
 
- <!-- Service Worker -->
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/service-worker.js') // service worker 등록
-        .then(registration => {
-          console.log('Service Worker 등록 성공:', registration);
-        })
-        .catch(error => {
-          console.log('Service Worker 등록 실패:', error);
-        });
-    });
-  }
-</script>
+  <!-- Manifest 연결 -->
+  <link rel="manifest" href="manifest.json">
 
-<!-- Manifest 연결 -->
-<link rel="manifest" href="manifest.json">
-
-<!-- PWA 설치 버튼 (기본적으로 숨김) -->
-<button id="installBtn" style="display:none;">홈 화면에 추가</button>
-
-<script>
-  let deferredPrompt;
-
-  // 'beforeinstallprompt' 이벤트가 발생하면, 설치 버튼을 보이게 함
-  window.addEventListener('beforeinstallprompt', (event) => {
-    // 'beforeinstallprompt' 이벤트를 막지 않고 저장
-    deferredPrompt = event;
-
-    // 설치 버튼을 표시
-    document.getElementById('installBtn').style.display = 'inline-block';
-
-    // 설치 버튼 클릭 시, 설치 요청
-    document.getElementById('installBtn').addEventListener('click', () => {
-      // 사용자가 앱을 설치할 수 있도록 프롬프트 표시
-      deferredPrompt.prompt();
-      
-      // 사용자가 선택한 결과에 따라 처리
-      deferredPrompt.userChoice.then((choiceResult) => {
-        if (choiceResult.outcome === 'accepted') {
-          console.log('사용자가 앱을 설치함');
-        } else {
-          console.log('사용자가 앱 설치를 거부함');
-        }
-        // 이벤트 객체 초기화
-        deferredPrompt = null;
-      });
-    });
-  });
-</script>
-
+  <!-- PWA 설치 버튼 (기본적으로 숨김) -->
   <button id="installBtn" style="display:none;">홈 화면에 추가</button>
 
+  <script>
+    let deferredPrompt;
+
+    // 'beforeinstallprompt' 이벤트가 발생하면, 설치 버튼을 보이게 함
+    window.addEventListener('beforeinstallprompt', (event) => {
+      // 'beforeinstallprompt' 이벤트를 막지 않고 저장
+      deferredPrompt = event;
+
+      // 설치 버튼을 표시
+      document.getElementById('installBtn').style.display = 'inline-block';
+
+      // 설치 버튼 클릭 시, 설치 요청
+      document.getElementById('installBtn').addEventListener('click', () => {
+        // 사용자가 앱을 설치할 수 있도록 프롬프트 표시
+        deferredPrompt.prompt();
+        
+        // 사용자가 선택한 결과에 따라 처리
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('사용자가 앱을 설치함');
+          } else {
+            console.log('사용자가 앱 설치를 거부함');
+          }
+          // 이벤트 객체 초기화
+          deferredPrompt = null;
+        });
+      });
+    });
+  </script>
 </body>
 </html>

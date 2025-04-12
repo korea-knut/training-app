@@ -1,17 +1,44 @@
-// dotenv 패키지 사용 (Node.js 환경에 필요한 부분)
-require('dotenv').config(); // 이 코드는 서버 환경에서만 동작합니다.
+// 타이머 함수: 세트 타이머
+function startSetTimer() {
+  let time = 45;  // 세트 타이머 시간 (45초)
+  const display = document.getElementById("set-timer");  // 타이머 화면 표시 요소
+  const interval = setInterval(() => {
+    const minutes = String(Math.floor(time / 60)).padStart(2, '0');
+    const seconds = String(time % 60).padStart(2, '0');
+    display.textContent = `${minutes}:${seconds}`;  // 타이머 화면에 표시
+    time--;
+    if (time < 0) {
+      clearInterval(interval);  // 타이머 종료
+      display.textContent = "완료!";
+    }
+  }, 1000);
+}
 
+// 타이머 함수: 휴식 타이머
+function startRestTimer() {
+  let time = 60;  // 휴식 타이머 시간 (60초)
+  const display = document.getElementById("rest-timer");  // 타이머 화면 표시 요소
+  const interval = setInterval(() => {
+    const minutes = String(Math.floor(time / 60)).padStart(2, '0');
+    const seconds = String(time % 60).padStart(2, '0');
+    display.textContent = `${minutes}:${seconds}`;  // 타이머 화면에 표시
+    time--;
+    if (time < 0) {
+      clearInterval(interval);  // 타이머 종료
+      display.textContent = "휴식 끝!";
+    }
+  }, 1000);
+}
+
+// GPT API 요청 함수
 async function getGPT() {
-  const input = document.getElementById("mealInput").value;
-
-  // 환경 변수에서 API 키 가져오기
-  const openaiApiKey = process.env.OPENAI_API_KEY;  // 이 부분을 환경 변수로 불러옴
+  const input = document.getElementById("mealInput").value;  // 사용자가 입력한 식단
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${openaiApiKey}`  // 여기에서 API 키를 사용
+      "Authorization": "Bearer your_openai_api_key_here"  // API 키는 보안상의 이유로 서버 측에서 처리해야 함
     },
     body: JSON.stringify({
       model: "gpt-3.5-turbo",
@@ -39,65 +66,7 @@ async function getGPT() {
   }
 }
 
-// 요일별 루틴 자동 설정
-const day = new Date().getDay(); // 0 = 일요일, 1 = 월요일, ..., 6 = 토요일
-let routineHTML = "";
-
-if (day === 1 || day === 3) { // 월, 수
-  routineHTML = `
-    <li><input type="checkbox"> 네거티브 풀업</li>
-    <li><input type="checkbox"> 푸쉬업</li>
-    <li><input type="checkbox"> 플랭크</li>`;
-} else if (day === 2 || day === 4) { // 화, 목
-  routineHTML = `
-    <li><input type="checkbox"> 스쿼트</li>
-    <li><input type="checkbox"> 런지</li>
-    <li><input type="checkbox"> 힙 브릿지</li>`;
-} else if (day === 5) { // 금
-  routineHTML = `
-    <li><input type="checkbox"> 철봉 매달리기</li>
-    <li><input type="checkbox"> 케틀벨 로우</li>
-    <li><input type="checkbox"> 데드버그</li>`;
-} else {
-  // 토(6), 일(0) → 휴식
-  routineHTML = `<li>💤 오늘은 휴식일입니다!</li>`;
-}
-
-document.getElementById("routine").innerHTML = routineHTML;
-
-// 세트 타이머
-function startSetTimer() {
-  let time = 45;
-  const display = document.getElementById("set-timer");
-  const interval = setInterval(() => {
-    const minutes = String(Math.floor(time / 60)).padStart(2, '0');
-    const seconds = String(time % 60).padStart(2, '0');
-    display.textContent = `${minutes}:${seconds}`;
-    time--;
-    if (time < 0) {
-      clearInterval(interval);
-      display.textContent = "완료!";
-    }
-  }, 1000);
-}
-
-// 휴식 타이머
-function startRestTimer() {
-  let time = 60;
-  const display = document.getElementById("rest-timer");
-  const interval = setInterval(() => {
-    const minutes = String(Math.floor(time / 60)).padStart(2, '0');
-    const seconds = String(time % 60).padStart(2, '0');
-    display.textContent = `${minutes}:${seconds}`;
-    time--;
-    if (time < 0) {
-      clearInterval(interval);
-      display.textContent = "휴식 끝!";
-    }
-  }, 1000);
-}
-
-// PWA 설치
+// 홈 화면에 추가 (PWA 기능)
 let deferredPrompt;
 
 window.addEventListener('beforeinstallprompt', (event) => {
