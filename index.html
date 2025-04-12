@@ -140,19 +140,21 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="script.js"></script>
 
-  <!-- Service Worker -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js');  // service worker 등록
-          .then(registration => {
-            console.log('Service Worker 등록 성공:', registration);
-          })
-          .catch(error => {
-            console.log('Service Worker 등록 실패:', error);
-          });
-      });
-    }
+ <!-- Service Worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js')  // service worker 등록
+        .then(registration => {
+          console.log('Service Worker 등록 성공:', registration);
+        })
+        .catch(error => {
+          console.log('Service Worker 등록 실패:', error);
+        });
+    });
+  }
+</script>
+
   </script>
 
   <!-- Manifest 연결 -->
