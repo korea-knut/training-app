@@ -162,33 +162,34 @@
   <button id="installBtn" style="display:none;">홈 화면에 추가</button>
 
   <script>
-    let deferredPrompt; // 중복된 선언을 한 번만 유지
+let installPrompt; // 변수명을 변경하여 중복 선언 방지
 
-    // 'beforeinstallprompt' 이벤트가 발생하면, 설치 버튼을 보이게 함
-    window.addEventListener('beforeinstallprompt', (event) => {
-      // 'beforeinstallprompt' 이벤트를 막지 않고 저장
-      deferredPrompt = event;
+// 'beforeinstallprompt' 이벤트가 발생하면, 설치 버튼을 보이게 함
+window.addEventListener('beforeinstallprompt', (event) => {
+  // 'beforeinstallprompt' 이벤트를 막지 않고 저장 (한 번만 선언)
+  installPrompt = event; // 이제 'installPrompt' 변수 사용
 
-      // 설치 버튼을 표시
-      document.getElementById('installBtn').style.display = 'inline-block';
+  // 설치 버튼을 표시
+  document.getElementById('installBtn').style.display = 'inline-block';
 
-      // 설치 버튼 클릭 시, 설치 요청
-      document.getElementById('installBtn').addEventListener('click', () => {
-        // 사용자가 앱을 설치할 수 있도록 프롬프트 표시
-        deferredPrompt.prompt();
-        
-        // 사용자가 선택한 결과에 따라 처리
-        deferredPrompt.userChoice.then((choiceResult) => {
-          if (choiceResult.outcome === 'accepted') {
-            console.log('사용자가 앱을 설치함');
-          } else {
-            console.log('사용자가 앱 설치를 거부함');
-          }
-          // 이벤트 객체 초기화
-          deferredPrompt = null;
-        });
-      });
+  // 설치 버튼 클릭 시, 설치 요청
+  document.getElementById('installBtn').addEventListener('click', () => {
+    // 사용자가 앱을 설치할 수 있도록 프롬프트 표시
+    installPrompt.prompt(); // 'installPrompt' 사용
+    
+    // 사용자가 선택한 결과에 따라 처리
+    installPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('사용자가 앱을 설치함');
+      } else {
+        console.log('사용자가 앱 설치를 거부함');
+      }
+      // 이벤트 객체 초기화 (한 번만)
+      installPrompt = null; // 초기화도 'installPrompt'로 변경
     });
+  });
+});
+
   </script>
 </body>
 </html>
