@@ -210,20 +210,56 @@
     }
   </script>
 
-  <!-- Service Worker -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
-          .then(registration => {
-            console.log('Service Worker 등록 성공:', registration);
-          })
-          .catch(error => {
-            console.log('Service Worker 등록 실패:', error);
-          });
+ <!-- Service Worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js') // service worker 등록
+        .then(registration => {
+          console.log('Service Worker 등록 성공:', registration);
+        })
+        .catch(error => {
+          console.log('Service Worker 등록 실패:', error);
+        });
+    });
+  }
+</script>
+
+<!-- Manifest 연결 -->
+<link rel="manifest" href="manifest.json">
+
+<!-- PWA 설치 버튼 (기본적으로 숨김) -->
+<button id="installBtn" style="display:none;">홈 화면에 추가</button>
+
+<script>
+  let deferredPrompt;
+
+  // 'beforeinstallprompt' 이벤트가 발생하면, 설치 버튼을 보이게 함
+  window.addEventListener('beforeinstallprompt', (event) => {
+    // 'beforeinstallprompt' 이벤트를 막지 않고 저장
+    deferredPrompt = event;
+
+    // 설치 버튼을 표시
+    document.getElementById('installBtn').style.display = 'inline-block';
+
+    // 설치 버튼 클릭 시, 설치 요청
+    document.getElementById('installBtn').addEventListener('click', () => {
+      // 사용자가 앱을 설치할 수 있도록 프롬프트 표시
+      deferredPrompt.prompt();
+      
+      // 사용자가 선택한 결과에 따라 처리
+      deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('사용자가 앱을 설치함');
+        } else {
+          console.log('사용자가 앱 설치를 거부함');
+        }
+        // 이벤트 객체 초기화
+        deferredPrompt = null;
       });
-    }
-  </script>
+    });
+  });
+</script>
 
   <button id="installBtn" style="display:none;">홈 화면에 추가</button>
 
