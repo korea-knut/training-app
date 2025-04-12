@@ -162,7 +162,7 @@
   <button id="installBtn" style="display:none;">홈 화면에 추가</button>
 
   <script>
-    let deferredPrompt;
+    let deferredPrompt; // 중복된 선언을 한 번만 유지
 
     // 'beforeinstallprompt' 이벤트가 발생하면, 설치 버튼을 보이게 함
     window.addEventListener('beforeinstallprompt', (event) => {
