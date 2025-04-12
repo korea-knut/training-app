@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>전문 트레이너 앱</title>
+  <style>
+    :root {
+      --primary: #2e7dff;
+      --accent: #00bcd4;
+      --background: #f4f6f8;
+      --card-bg: #ffffff;
+      --text-main: #222;
+      --text-sub: #666;
+      --border: #ddd;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background-color: var(--background);
+      color: var(--text-main);
+      padding: 20px;
+      margin: 0;
+    }
+
+    h1, h2 {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    button {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      margin: 6px 4px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #155bd4;
+    }
+
+    select, textarea {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px;
+      margin-top: 8px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    #main, #log, #stats {
+      background: var(--card-bg);
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      margin-top: 16px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 10px;
+      text-align: center;
+    }
+
+    #response {
+      margin-top: 16px;
+      background: #e3f2fd;
+      padding: 10px;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <button onclick="showSection('main')">🏠 홈</button>
+  <button onclick="showSection('log')">📓 운동 일지</button>
+  <button onclick="showSection('stats')">📊 운동 통계</button>
+
+  <div id="main">
+    <h2>요일별 루틴 계획표</h2>
+    <table>
+      <tr><th>요일</th><th>루틴</th></tr>
+      <tr><td>월요일</td><td>루틴 1 - 상체</td></tr>
+      <tr><td>화요일</td><td>루틴 2 - 하체</td></tr>
+      <tr><td>수요일</td><td>루틴 1 - 상체</td></tr>
+      <tr><td>목요일</td><td>루틴 2 - 하체</td></tr>
+      <tr><td>금요일</td><td>루틴 3 - 등/코어</td></tr>
+      <tr><td>토요일</td><td>자유 선택 or 휴식</td></tr>
+      <tr><td>일요일</td><td>휴식</td></tr>
+    </table>
+
+    <h1>오늘의 루틴</h1>
+    <label>직접 루틴 선택:
+      <select id="routineSelector" onchange="setRoutine()">
+        <option value="rest">휴식</option>
+        <option value="routine1">루틴 1 - 상체</option>
+        <option value="routine2">루틴 2 - 하체</option>
+        <option value="routine3">루틴 3 - 등/코어</option>
+      </select>
+    </label>
+    <ul id="routine"></ul>
+
+    <label><input type="checkbox" id="skipCheckbox"> 오늘은 해야 했지만 못했음 (기록용)</label>
+
+    <h2>식단 입력</h2>
+    <textarea id="mealInput" rows="4" placeholder="오늘 먹은 식단을 입력하세요"></textarea><br>
+    <button onclick="getGPT()">GPT 피드백 받기</button>
+
+    <div id="response"></div>
+
+    <h2>타이머</h2>
+    <p>현재 세트: <span id="current-set">1</span>/3</p>
+    <p>세트 타이머: <span id="set-timer">00:45</span></p>
+    <p>휴식 타이머: <span id="rest-timer">01:00</span></p>
+    <button onclick="startWorkoutRoutine()">전체 루틴 시작</button>
+    <button onclick="stopTimers()">중지</button>
+    <button onclick="downloadPDF()">PDF로 저장하기</button>
+  </div>
+
+  <div id="log">
+    <h2>운동 일지 (이번 달)</h2>
+    <div id="logList"></div>
+  </div>
+
+  <div id="stats">
+    <h2>운동 통계 (이번 달)</h2>
+    <div id="statsList"></div>
+    <h3>📊 올해 월별 운동 성공률</h3>
+    <div id="yearlyStats"></div>
+  </div>
+
+  <audio id="alarmSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    const { jsPDF } = window.jspdf;
+
+    function showSection(section) {
+      document.getElementById('main').style.display = 'none';
+      document.getElementById('log').style.display = 'none';
+      document.getElementById('stats').style.display = 'none';
+      document.getElementById(section).style.display = 'block';
+      if (section === 'stats') {
+        renderStats();
+        renderYearlyStats();
+      }
+      if (section === 'log') renderLog();
+    }
+
+    function renderStats() {
+      const logs = JSON.parse(localStorage.getItem('workoutLog') || '[]');
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      const stats = [];
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      for (let i = 1; i <= daysInMonth; i++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+        const log = logs.find(l => l.date === dateStr);
+        stats.push({ date: dateStr, status: log ? (log.message.includes('결석') ? '❌' : '✅') : '⬜' });
+      }
+      const html = stats.map(s => `<p><strong>${s.date}</strong>: ${s.status}</p>`).join('');
+      document.getElementById('statsList').innerHTML = html;
+    }
+
+    function renderYearlyStats() {
+      const logs = JSON.parse(localStorage.getItem('workoutLog') || '[]');
+      const now = new Date();
+      const year = now.getFullYear();
+      const monthlyStats = Array.from({ length: 12 }, (_, i) => {
+        const month = String(i + 1).padStart(2, '0');
+        const matches = logs.filter(l => l.date.startsWith(`${year}-${month}`));
+        const total = matches.length;
+        const success = matches.filter(m => !m.message.includes('결석')).length;
+        const rate = total > 0 ? Math.round((success / total) * 100) : 0;
+        return `<p><strong>${year}-${month}</strong>: ${rate}% (${success}/${total})</p>`;
+      });
+      document.getElementById('yearlyStats').innerHTML = monthlyStats.join('');
+    }
+
+    function renderLog() {
+      const logs = JSON.parse(localStorage.getItem('workoutLog') || '[]');
+      const now = new Date();
+      const yearMonth = now.toISOString().slice(0, 7);
+      const filtered = logs.filter(l => l.date.startsWith(yearMonth));
+      const html = filtered.map(log => `<p><strong>${log.date}</strong>: ${log.message}</p>`).join('');
+      document.getElementById('logList').innerHTML = html;
+    }
+
+    function downloadPDF() {
+      const doc = new jsPDF();
+      doc.text('운동 일지 (이번 달)', 10, 10);
+
+      const logs = JSON.parse(localStorage.getItem('workoutLog') || '[]');
+      const now = new Date();
+      const thisMonth = now.toISOString().slice(0, 7);
+      const logList = logs.filter(l => l.date.startsWith(thisMonth));
+
+      logList.forEach((log, index) => {
+        doc.text(`${log.date}: ${log.message}`, 10, 20 + (index * 10));
+      });
+
+      doc.save('운동일지.pdf');
+    }
+  </script>
+
+  <!-- Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(registration => {
+            console.log('Service Worker 등록 성공:', registration);
+          })
+          .catch(error => {
+            console.log('Service Worker 등록 실패:', error);
+          });
+      });
+    }
+  </script>
+
+  <button id="installBtn" style="display:none;">홈 화면에 추가</button>
+
+</body>
+</html>
